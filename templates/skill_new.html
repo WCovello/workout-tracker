@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}New Skill — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>New Skill</h1>
+<p class="muted mb">
+    After creating the skill you'll be able to add progression stages to it.
+    The five default skills (Front Lever, Planche, Handstand, Muscle-up,
+    L-sit to Handstand) are already in your library.
+</p>
+
+<form method="POST">
+    <label for="name">Skill Name</label>
+    <input type="text" id="name" name="name"
+           placeholder="e.g. Human Flag, Back Lever" required>
+
+    <label for="description">Description (optional)</label>
+    <textarea id="description" name="description" rows="2"
+              placeholder="Brief description of the skill"></textarea>
+
+    <div class="mt">
+        <button type="submit" class="btn btn-primary">Create Skill</button>
+        <a href="/skills" class="btn btn-neutral">Cancel</a>
+    </div>
+</form>
+
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Dashboard</h1>
+<p class="muted mb">Last 7 days &nbsp;·&nbsp; {{ week_ago }} → {{ today }}</p>
+
+
+{# ── Quick stats ── #}
+<div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+    <div class="card" style="flex:1; min-width:120px; text-align:center; padding:18px 10px;">
+        <div style="font-size:2rem; font-weight:700;">{{ workout_count }}</div>
+        <div class="muted" style="font-size:13px;">Workouts</div>
+    </div>
+    <div class="card" style="flex:1; min-width:120px; text-align:center; padding:18px 10px;">
+        <div style="font-size:2rem; font-weight:700;">{{ total_sets }}</div>
+        <div class="muted" style="font-size:13px;">Total Sets</div>
+    </div>
+</div>
+
+
+{# ── Progression flags ── #}
+{% if progression_flags %}
+<h2>🎯 Ready to Progress</h2>
+<p class="muted" style="font-size:14px; margin-bottom:10px;">
+    These exercises hit the top of their rep range across your last two sessions.
+    Increase the weight in the template, then keep building.
+</p>
+{% for flag in progression_flags %}
+<div class="card" style="border-left: 4px solid #16a34a;">
+    <strong>{{ flag.exercise_name }}</strong>
+    <span class="muted"> — {{ flag.template_name }}</span>
+    <p style="margin-top:6px; font-size:14px;">
+        Hit <strong>{{ flag.target_reps_max }} reps</strong> across all sets
+        in the last 2 sessions.
+        Current weight: <strong>{{ flag.current_weight }}kg</strong>.
+        <a href="/templates" style="color:#2563eb;">Update in template →</a>
+    </p>
+</div>
+{% endfor %}
+{% elif workout_count > 0 %}
+<h2>🎯 Progression Flags</h2>
+<p class="muted" style="font-size:14px;">
+    No exercises have hit their rep ceiling in consecutive sessions yet.
+    Keep training — flags will appear here when you're ready to add weight.
+</p>
+{% endif %}
+
+
+{# ── Push / Pull balance ── #}
+<h2>Push / Pull Balance</h2>
+
+{% if balance_msg %}
+<div class="card" style="border-left: 4px solid
+    {% if balance_status == 'warning' %}#d97706{% else %}#16a34a{% endif %};
+    margin-bottom:12px;">
+    <p style="font-size:14px; margin:0;">
+        {% if balance_status == 'warning' %}⚠️{% else %}✓{% endif %}
+        {{ balance_msg }}
+    </p>
+</div>
+{% endif %}
+
+{% if has_cat_data %}
+<div class="card">
+    <canvas id="catChart" style="max-height:220px;"></canvas>
+</div>
+{% else %}
+<p class="muted" style="font-size:14px;">
+    No sets logged in the last 7 days.
+    <a href="/workout/start">Start a workout</a> to see your balance here.
+</p>
+{% endif %}
+
+
+{# ── Volume by muscle group ── #}
+<h2>Volume by Muscle Group</h2>
+<p class="muted" style="font-size:13px; margin-bottom:10px;">
+    Counts primary muscle group sets only.
+    Exercises must have muscle group tags set in the library to appear here.
+</p>
+
+{% if has_muscle_data %}
+<div class="card">
+    <canvas id="muscleChart" style="max-height:300px;"></canvas>
+</div>
+{% else %}
+<p class="muted" style="font-size:14px;">
+    No muscle group data yet.
+    This appears once you've logged exercises that have muscle groups tagged.
+</p>
+{% endif %}
+
+
+{# ── No data at all ── #}
+{% if workout_count == 0 %}
+<hr>
+<p class="muted" style="font-size:14px;">
+    Nothing logged in the last 7 days.
+    <a href="/workout/start">Log a workout</a> to see your dashboard fill in.
+</p>
+{% endif %}
+
+
+{# ── Chart.js — only loaded when there's data to show ── #}
+{% if has_cat_data or has_muscle_data %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+    const defaultOpts = {
+        indexAxis: 'y',   // horizontal bars — easier to read on mobile
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 },
+                title: { display: true, text: 'Sets' }
+            }
+        }
+    };
+
+    {% if has_cat_data %}
+    new Chart(document.getElementById('catChart'), {
+        type: 'bar',
+        data: {{ cat_chart | tojson }},
+        options: defaultOpts
+    });
+    {% endif %}
+
+    {% if has_muscle_data %}
+    new Chart(document.getElementById('muscleChart'), {
+        type: 'bar',
+        data: {{ muscle_chart | tojson }},
+        options: defaultOpts
+    });
+    {% endif %}
+</script>
+{% endif %}
+
+{% endblock %}

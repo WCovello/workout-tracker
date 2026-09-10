@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Home — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Workout Tracker</h1>
+
+<p>
+    <a href="/workout/start" class="btn btn-success">+ Start Workout</a>
+    <a href="/templates/new" class="btn btn-primary">+ New Template</a>
+</p>
+
+<h2>Recent Sessions</h2>
+{% if recent %}
+<table>
+    <tr>
+        <th>Date</th>
+        <th>Name</th>
+        <th>Exercises</th>
+        <th>Sets</th>
+        <th>Duration</th>
+        <th></th>
+    </tr>
+    {% for s in recent %}
+    <tr>
+        <td>{{ s.date }}</td>
+        <td>{{ s.name }}</td>
+        <td>{{ s.ex_count }}</td>
+        <td>{{ s.set_count }}</td>
+        <td>{% if s.duration_minutes %}{{ s.duration_minutes }} min{% else %}—{% endif %}</td>
+        <td><a href="/history/{{ s.id }}">View</a></td>
+    </tr>
+    {% endfor %}
+</table>
+<p><a href="/history">View all history →</a></p>
+{% else %}
+<p class="muted">No workouts logged yet.</p>
+<p class="muted">Start by creating a <a href="/templates/new">template</a>, then <a href="/workout/start">log a workout</a>.</p>
+{% endif %}
+
+{% endblock %}

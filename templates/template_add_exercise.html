@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Add Exercise — {{ tmpl.name }}{% endblock %}
+{% block content %}
+
+<h1>Add Exercise to "{{ tmpl.name }}"</h1>
+
+<form method="POST">
+    <label for="exercise_id">Exercise</label>
+    <select id="exercise_id" name="exercise_id" required>
+        <option value="">— Select an exercise —</option>
+        {% for group, label in [('push','Push'), ('pull','Pull'), ('core','Core'), ('legs','Legs')] %}
+            {% set group_exs = all_exercises | selectattr('push_pull', 'equalto', group) | list %}
+            {% if group_exs %}
+            <optgroup label="{{ label }}">
+                {% for ex in group_exs %}
+                <option value="{{ ex.id }}">{{ ex.name }}</option>
+                {% endfor %}
+            </optgroup>
+            {% endif %}
+        {% endfor %}
+    </select>
+
+    <label for="target_sets">Target Sets</label>
+    <input type="number" id="target_sets" name="target_sets"
+           min="1" max="20" value="3">
+
+    <!-- Rep range: aim to hit the top end before adding weight (double progression) -->
+    <label>Target Rep Range</label>
+    <div class="row">
+        <div>
+            <input type="number" name="target_reps_min"
+                   placeholder="Min  e.g. 6" min="1" max="100">
+        </div>
+        <div>
+            <input type="number" name="target_reps_max"
+                   placeholder="Max  e.g. 10" min="1" max="100">
+        </div>
+    </div>
+    <p class="muted" style="margin-top:4px; font-size:13px;">
+        The app will flag when you're ready to increase weight once you hit
+        the top of this range across all sets.
+    </p>
+
+    <label for="target_weight_kg">Starting Weight (kg)</label>
+    <input type="number" id="target_weight_kg" name="target_weight_kg"
+           step="0.5" min="0" value="0"
+           placeholder="Use 0 for bodyweight exercises">
+
+    <div class="mt">
+        <button type="submit" class="btn btn-primary">Add to Template</button>
+        <a href="/templates/{{ tmpl.id }}" class="btn btn-neutral">Cancel</a>
+    </div>
+</form>
+
+{% endblock %}

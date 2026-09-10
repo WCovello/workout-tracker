@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Exercise Library — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Exercise Library</h1>
+<p><a href="/exercises/new" class="btn btn-primary">+ Add Exercise</a></p>
+
+{% set groups = [('push','Push'), ('pull','Pull'), ('core','Core'), ('legs','Legs'), ('other','Other')] %}
+{% for key, label in groups %}
+    {% set group_exs = exercises | selectattr('push_pull', 'equalto', key) | list %}
+    {% if group_exs %}
+    <h2>{{ label }}</h2>
+    <table>
+        <tr><th>Name</th></tr>
+        {% for ex in group_exs %}
+        <tr><td>{{ ex.name }}</td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+{% endfor %}
+
+{% endblock %}

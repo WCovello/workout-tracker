@@ -1,0 +1,5 @@
+Flask
+pystray
+pillow
+customtkinter
+matplotlib

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Skills — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Skills</h1>
+<p><a href="/skills/new" class="btn btn-primary">+ New Skill</a></p>
+
+{% if skills %}
+<table>
+    <tr>
+        <th>Skill</th>
+        <th>Current Stage</th>
+        <th>Sessions Logged</th>
+        <th></th>
+    </tr>
+    {% for s in skills %}
+    <tr>
+        <td>{{ s.name }}</td>
+        <td>
+            {% if current_stages[s.id] %}
+                {{ current_stages[s.id] }}
+            {% else %}
+                <span class="muted">Not started</span>
+            {% endif %}
+        </td>
+        <td>{{ s.log_count }}</td>
+        <td>
+            <a href="/skills/{{ s.id }}">View</a>
+            &nbsp;·&nbsp;
+            <a href="/skills/{{ s.id }}/log">Log</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="muted">No skills yet.</p>
+{% endif %}
+
+{% endblock %}

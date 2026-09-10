@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}{{ sess.name }} — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>{{ sess.name }}</h1>
+<p class="muted mb">
+    {{ sess.date }}
+    {% if sess.duration_minutes %} &nbsp;·&nbsp; {{ sess.duration_minutes }} min{% endif %}
+</p>
+{% if sess.notes %}<p class="mb">{{ sess.notes }}</p>{% endif %}
+
+{% if exercises %}
+    {% for ex in exercises %}
+    {% set logged_sets = sets_by_ex.get(ex.id, []) %}
+    <div class="card">
+        <span class="card-title">{{ ex.name }}</span>
+        <table style="margin-top:10px;">
+            <tr><th>Set</th><th>Reps</th><th>Weight (kg)</th></tr>
+            {% for s in logged_sets %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ s.reps }}</td>
+                <td>{{ s.weight_kg }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <p class="muted" style="margin-top:6px; font-size:13px;">
+            {{ logged_sets | length }} set{% if logged_sets | length != 1 %}s{% endif %}
+            &nbsp;·&nbsp;
+            {{ logged_sets | sum(attribute='reps') }} total reps
+        </p>
+    </div>
+    {% endfor %}
+{% else %}
+<p class="muted">No sets were logged in this session.</p>
+{% endif %}
+
+<hr>
+<a href="/history" class="btn btn-neutral">← History</a>
+<a href="/workout/start" class="btn btn-success">+ New Workout</a>
+
+{# ── Delete — at the bottom, separated from the main actions ── #}
+<div style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 16px;">
+    <p class="muted" style="font-size:13px; margin-bottom:8px;">
+        Danger zone — this cannot be undone.
+    </p>
+    <form method="POST"
+          action="/history/{{ sess.id }}/delete"
+          onsubmit="return confirm('Permanently delete this workout? This cannot be undone.')">
+        <button type="submit" class="btn btn-danger">Delete This Workout</button>
+    </form>
+</div>
+
+{% endblock %}

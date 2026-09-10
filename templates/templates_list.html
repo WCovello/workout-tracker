@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Templates — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Templates</h1>
+<p><a href="/templates/new" class="btn btn-primary">+ New Template</a></p>
+
+{% if templates %}
+<table>
+    <tr>
+        <th>Name</th>
+        <th>Exercises</th>
+        <th>Notes</th>
+        <th></th>
+    </tr>
+    {% for t in templates %}
+    <tr>
+        <td>{{ t.name }}</td>
+        <td>{{ t.ex_count }}</td>
+        <td class="muted">{{ t.notes or '—' }}</td>
+        <td><a href="/templates/{{ t.id }}">View</a></td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="muted">No templates yet. Create one to get started.</p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}History — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Workout History</h1>
+
+{% if sessions %}
+<table>
+    <tr>
+        <th>Date</th>
+        <th>Name</th>
+        <th>Exercises</th>
+        <th>Sets</th>
+        <th>Duration</th>
+        <th></th>
+    </tr>
+    {% for s in sessions %}
+    <tr>
+        <td>{{ s.date }}</td>
+        <td>{{ s.name }}</td>
+        <td>{{ s.ex_count }}</td>
+        <td>{{ s.set_count }}</td>
+        <td>{% if s.duration_minutes %}{{ s.duration_minutes }} min{% else %}—{% endif %}</td>
+        <td><a href="/history/{{ s.id }}">View</a></td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="muted">No workouts logged yet.</p>
+<p class="mt"><a href="/workout/start" class="btn btn-success">Start your first workout</a></p>
+{% endif %}
+
+{% endblock %}

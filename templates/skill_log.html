@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Log {{ skill.name }} — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Log: {{ skill.name }}</h1>
+
+<form method="POST">
+
+    <label for="progression_id">Stage</label>
+    <select id="progression_id" name="progression_id" required>
+        {% for stage in stages %}
+        <option value="{{ stage.id }}"
+            {% if stage.id == default_stage_id %}selected{% endif %}>
+            {{ stage.stage_order }}. {{ stage.stage_name }}
+            {% if stage.description %} — {{ stage.description }}{% endif %}
+        </option>
+        {% endfor %}
+    </select>
+
+    <label for="hold_seconds">Hold Duration (seconds)</label>
+    <input type="number" id="hold_seconds" name="hold_seconds"
+           min="0" max="300" step="0.5"
+           placeholder="e.g. 8  — leave blank for dynamic skills">
+    <p class="muted" style="font-size:13px; margin-top:3px;">
+        Use this for static holds: front lever, planche, handstand, L-sit.
+    </p>
+
+    <label for="quality">Quality (1–5)</label>
+    <select id="quality" name="quality">
+        <option value="">— Optional —</option>
+        <option value="1">1 — Failed / very poor</option>
+        <option value="2">2 — Poor form</option>
+        <option value="3">3 — Acceptable</option>
+        <option value="4">4 — Good</option>
+        <option value="5">5 — Clean</option>
+    </select>
+    <p class="muted" style="font-size:13px; margin-top:3px;">
+        Use this for dynamic skills: muscle-up, L-sit to handstand press.
+    </p>
+
+    <label for="date">Date</label>
+    <input type="date" id="date" name="date" value="{{ today }}">
+
+    <label for="notes">Notes (optional)</label>
+    <textarea id="notes" name="notes" rows="2"
+              placeholder="e.g. Best attempt of the day, shoulders tight..."></textarea>
+
+    <div class="mt">
+        <button type="submit" class="btn btn-success">Save Session</button>
+        <a href="/skills/{{ skill.id }}" class="btn btn-neutral">Cancel</a>
+    </div>
+
+</form>
+
+{% endblock %}

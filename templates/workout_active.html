@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}{{ sess.name }} — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>{{ sess.name }}</h1>
+<p class="muted mb">{{ sess.date }}</p>
+
+{# ── Macro: renders one exercise card with its sets and add-set form ── #}
+{% macro exercise_card(ex_id, ex_name, target_sets, target_reps_min, target_reps_max, target_weight_kg) %}
+    {% set logged_sets = sets_by_ex.get(ex_id, []) %}
+    {% set last_set    = last_set_by_ex.get(ex_id) %}
+
+    <div class="card">
+        <span class="card-title">{{ ex_name }}</span>
+
+        {# Target info from template #}
+        {% if target_sets or target_reps_min %}
+        <span class="muted"> — Target:
+            {% if target_sets %}{{ target_sets }} ×{% endif %}
+            {% if target_reps_min and target_reps_max %}
+                {{ target_reps_min }}–{{ target_reps_max }} reps
+            {% elif target_reps_min %}
+                {{ target_reps_min }} reps
+            {% endif %}
+            {% if target_weight_kg %} @ {{ target_weight_kg }}kg{% endif %}
+        </span>
+        {% endif %}
+
+        {# Logged sets table #}
+        {% if logged_sets %}
+        <table style="margin-top:10px;">
+            <tr><th>Set</th><th>Reps</th><th>Weight (kg)</th><th></th></tr>
+            {% for s in logged_sets %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ s.reps }}</td>
+                <td>{{ s.weight_kg }}</td>
+                <td>
+                    <form method="POST"
+                          action="/workout/{{ sess.id }}/delete-set/{{ s.id }}">
+                        <button type="submit" class="btn btn-danger btn-small">✕</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+
+        {# Add set form — pre-fills from last logged set, or from template targets #}
+        <form method="POST" action="/workout/{{ sess.id }}/add-set"
+              style="margin-top:10px;">
+            <input type="hidden" name="exercise_id" value="{{ ex_id }}">
+            <div class="row">
+                <div>
+                    <label style="font-size:13px; font-weight:normal;">Reps</label>
+                    <input type="number" name="reps" min="0" max="999"
+                           style="width:80px;"
+                           value="{{ last_set.reps if last_set else (target_reps_min or '') }}">
+                </div>
+                <div>
+                    <label style="font-size:13px; font-weight:normal;">Weight (kg)</label>
+                    <input type="number" name="weight_kg" min="0" max="999" step="0.5"
+                           style="width:100px;"
+                           value="{{ last_set.weight_kg if last_set else (target_weight_kg or 0) }}">
+                </div>
+                <div class="btn-col" style="padding-bottom:2px;">
+                    <button type="submit" class="btn btn-success">+ Set</button>
+                </div>
+            </div>
+        </form>
+    </div>
+{% endmacro %}
+
+
+{# ── Template exercises ── #}
+{% if tmpl_exercises %}
+    {% for ex in tmpl_exercises %}
+        {{ exercise_card(
+            ex.exercise_id, ex.name,
+            ex.target_sets, ex.target_reps_min,
+            ex.target_reps_max, ex.target_weight_kg
+        ) }}
+    {% endfor %}
+{% endif %}
+
+{# ── Extra exercises (added during session, not from template) ── #}
+{% for ex in extra_exercises %}
+    {{ exercise_card(ex.id, ex.name, none, none, none, none) }}
+{% endfor %}
+
+{# ── Pending exercise (just selected, no sets yet) ── #}
+{% if pending_exercise %}
+    {{ exercise_card(pending_exercise.id, pending_exercise.name, none, none, none, none) }}
+{% endif %}
+
+{# ── Empty state ── #}
+{% if not tmpl_exercises and not extra_exercises and not pending_exercise %}
+<p class="muted" style="margin: 20px 0;">
+    No exercises yet. Select one below to get started.
+</p>
+{% endif %}
+
+
+{# ── Add an exercise not in the template ── #}
+<div class="card" style="background:#f5f5f5;">
+    <span class="card-title">Add Exercise</span>
+    {% if dropdown_exercises %}
+    <form method="POST" action="/workout/{{ sess.id }}/add-exercise"
+          style="margin-top:10px;">
+        <div class="row">
+            <div>
+                <select name="exercise_id">
+                    <option value="">— Select —</option>
+                    {% for group, label in [('push','Push'),('pull','Pull'),('core','Core'),('legs','Legs')] %}
+                        {% set g_exs = dropdown_exercises | selectattr('push_pull', 'equalto', group) | list %}
+                        {% if g_exs %}
+                        <optgroup label="{{ label }}">
+                            {% for ex in g_exs %}
+                            <option value="{{ ex.id }}">{{ ex.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="btn-col">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </div>
+        </div>
+    </form>
+    {% else %}
+    <p class="muted" style="margin-top:8px; font-size:14px;">
+        All available exercises are already in this template.
+    </p>
+    {% endif %}
+</div>
+
+
+{# ── Finish workout ── #}
+<hr>
+<h2>Finish Workout</h2>
+<form method="POST" action="/workout/{{ sess.id }}/finish">
+    <label for="duration">Duration (minutes)</label>
+    <input type="number" id="duration" name="duration"
+           min="1" max="300" placeholder="e.g. 45"
+           style="max-width:160px;">
+
+    <label for="notes">Notes (optional)</label>
+    <textarea id="notes" name="notes" rows="2"
+              placeholder="How did it go? Anything to note?"></textarea>
+
+    <div class="mt">
+        <button type="submit" class="btn btn-success"
+                style="width:100%; font-size:17px; padding:14px;">
+            ✓ Finish &amp; Save Workout
+        </button>
+    </div>
+</form>
+
+{% endblock %}

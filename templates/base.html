@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Workout Tracker{% endblock %}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 12px 16px 40px 16px;
+            font-size: 16px;
+            color: #1a1a1a;
+            background: #f8f8f8;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+            padding: 12px 0;
+            border-bottom: 2px solid #1a1a1a;
+            margin-bottom: 24px;
+            font-weight: 600;
+            flex-wrap: wrap;
+        }
+        nav a { text-decoration: none; color: #1a1a1a; }
+        nav a:hover { text-decoration: underline; }
+
+        h1 { font-size: 1.6rem; margin-bottom: 16px; margin-top: 8px; }
+        h2 { font-size: 1.2rem; margin: 20px 0 10px 0; }
+
+        /* Tables */
+        table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
+        th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+        th { background: #eee; font-weight: 600; }
+        tr:nth-child(even) { background: #f5f5f5; }
+
+        /* Forms */
+        label {
+            display: block;
+            font-weight: 600;
+            margin-top: 14px;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        input[type=text],
+        input[type=number],
+        select,
+        textarea {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            background: white;
+        }
+        textarea { resize: vertical; }
+
+        /* Buttons */
+        button, .btn {
+            display: inline-block;
+            padding: 9px 18px;
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            margin: 3px 2px;
+        }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-danger  { background: #dc2626; color: white; }
+        .btn-neutral { background: #e5e5e5; color: #1a1a1a; }
+        .btn-small   { padding: 4px 10px; font-size: 13px; font-weight: normal; }
+        button:hover, .btn:hover { opacity: 0.88; }
+
+        /* Cards — used for each exercise block in active workout */
+        .card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .card-title { font-weight: 700; font-size: 1.05rem; }
+
+        /* Flash messages */
+        .flash {
+            background: #d1fae5;
+            border: 1px solid #6ee7b7;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        /* Utility */
+        .muted   { color: #666; font-size: 14px; }
+        .row     { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+        .row > * { flex: 1; min-width: 60px; }
+        .row .btn-col { flex: 0 0 auto; }
+        hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+        .mt { margin-top: 12px; }
+        .mb { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/templates">Templates</a>
+        <a href="/workout/start">Start Workout</a>
+        <a href="/history">History</a>
+        <a href="/skills">Skills</a>
+        <a href="/exercises">Exercises</a>
+    </nav>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for msg in messages %}
+                <div class="flash">{{ msg }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</body>
+</html>

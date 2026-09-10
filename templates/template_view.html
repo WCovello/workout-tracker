@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}{{ tmpl.name }} — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>{{ tmpl.name }}</h1>
+{% if tmpl.notes %}<p class="muted mb">{{ tmpl.notes }}</p>{% endif %}
+
+<p>
+    <form method="POST" action="/workout/start" style="display:inline;">
+        <input type="hidden" name="template_id" value="{{ tmpl.id }}">
+        <button type="submit" class="btn btn-success">▶ Start This Workout</button>
+    </form>
+    <a href="/templates/{{ tmpl.id }}/add-exercise" class="btn btn-primary">+ Add Exercise</a>
+    <a href="/templates" class="btn btn-neutral">← All Templates</a>
+</p>
+
+{% if exercises %}
+<table>
+    <tr>
+        <th>Order</th>
+        <th>Exercise</th>
+        <th>Sets</th>
+        <th>Reps</th>
+        <th>Weight (kg)</th>
+        <th>Move</th>
+        <th>Remove</th>
+    </tr>
+    {% for ex in exercises %}
+    <tr>
+        <td>{{ ex.order_position }}</td>
+        <td>{{ ex.name }}</td>
+        <td>{{ ex.target_sets or '—' }}</td>
+        <td>
+            {% if ex.target_reps_min and ex.target_reps_max %}
+                {{ ex.target_reps_min }}–{{ ex.target_reps_max }}
+            {% elif ex.target_reps_min %}
+                {{ ex.target_reps_min }}
+            {% else %}—{% endif %}
+        </td>
+        <td>{{ ex.target_weight_kg if ex.target_weight_kg is not none else '—' }}</td>
+
+        {# ── Up / Down buttons ── #}
+        <td style="white-space:nowrap;">
+            {% if not loop.first %}
+            <form method="POST"
+                  action="/templates/{{ tmpl.id }}/move-exercise/{{ ex.te_id }}/up"
+                  style="display:inline;">
+                <button type="submit" class="btn btn-neutral btn-small">↑</button>
+            </form>
+            {% endif %}
+            {% if not loop.last %}
+            <form method="POST"
+                  action="/templates/{{ tmpl.id }}/move-exercise/{{ ex.te_id }}/down"
+                  style="display:inline;">
+                <button type="submit" class="btn btn-neutral btn-small">↓</button>
+            </form>
+            {% endif %}
+        </td>
+
+        {# ── Remove button ── #}
+        <td>
+            <form method="POST"
+                  action="/templates/{{ tmpl.id }}/remove-exercise/{{ ex.te_id }}"
+                  onsubmit="return confirm('Remove {{ ex.name }} from this template?')">
+                <button type="submit" class="btn btn-danger btn-small">Remove</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="muted">No exercises yet. Add some using the button above.</p>
+{% endif %}
+
+{% endblock %}

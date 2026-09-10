@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}{{ skill.name }} — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>{{ skill.name }}</h1>
+{% if skill.description %}
+<p class="muted mb">{{ skill.description }}</p>
+{% endif %}
+
+<p>
+    <a href="/skills/{{ skill.id }}/log"     class="btn btn-success">+ Log Session</a>
+    <a href="/skills/{{ skill.id }}/add-stage" class="btn btn-primary">+ Add Stage</a>
+    <a href="/skills"                         class="btn btn-neutral">← All Skills</a>
+</p>
+
+
+{# ── Progression ladder ── #}
+<h2>Progression Ladder</h2>
+{% if stages %}
+<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; align-items:center;">
+    {% for stage in stages %}
+    <div style="
+        display:flex; align-items:center; gap:4px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 14px;
+        {% if stage.stage_name == current_stage %}
+            background:#2563eb; color:white; font-weight:700;
+        {% else %}
+            background:#e5e5e5; color:#555;
+        {% endif %}
+    ">
+        {{ stage.stage_order }}. {{ stage.stage_name }}
+    </div>
+    {# Arrow between stages except after the last #}
+    {% if not loop.last %}
+    <span style="color:#aaa; font-size:18px;">→</span>
+    {% endif %}
+    {% endfor %}
+</div>
+{% if current_stage %}
+<p class="muted" style="font-size:14px;">Current stage: <strong>{{ current_stage }}</strong></p>
+{% else %}
+<p class="muted" style="font-size:14px;">No sessions logged yet — log your first one above.</p>
+{% endif %}
+{% else %}
+<p class="muted">No stages defined yet. Add stages using the button above.</p>
+{% endif %}
+
+
+{# ── Progress chart ── #}
+{% if has_chart_data %}
+<h2>Progress</h2>
+<div style="background:white; border:1px solid #ddd; border-radius:6px; padding:14px; margin-bottom:16px;">
+    <canvas id="skillChart" style="max-height:300px;"></canvas>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('skillChart'), {
+    type: 'line',
+    data: {{ chart_data | tojson }},
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' }
+        },
+        scales: {
+            x: {
+                title: { display: true, text: 'Date' },
+                ticks: { maxTicksLimit: 8 }
+            },
+            y: {
+                title: { display: true, text: 'Hold (seconds) / Quality' },
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+
+
+{# ── Log history ── #}
+<h2>Session History</h2>
+{% if logs %}
+<table>
+    <tr>
+        <th>Date</th>
+        <th>Stage</th>
+        <th>Hold (s)</th>
+        <th>Quality</th>
+        <th>Notes</th>
+        <th></th>
+    </tr>
+    {% for log in logs %}
+    <tr>
+        <td>{{ log.date }}</td>
+        <td>{{ log.stage_name }}</td>
+        <td>{{ log.hold_seconds if log.hold_seconds is not none else '—' }}</td>
+        <td>
+            {% if log.quality %}
+                {{ '★' * log.quality }}{{ '☆' * (5 - log.quality) }}
+            {% else %}—{% endif %}
+        </td>
+        <td class="muted">{{ log.notes or '—' }}</td>
+        <td>
+            <form method="POST"
+                  action="/skills/{{ skill.id }}/delete-log/{{ log.id }}"
+                  onsubmit="return confirm('Delete this log entry?')">
+                <button type="submit" class="btn btn-danger btn-small">✕</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="muted">No sessions logged yet.</p>
+{% endif %}
+
+{% endblock %}

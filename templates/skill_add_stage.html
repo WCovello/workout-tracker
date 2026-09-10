@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Add Stage — {{ skill.name }}{% endblock %}
+{% block content %}
+
+<h1>Add Stage to "{{ skill.name }}"</h1>
+<p class="muted mb">
+    Stages are ordered from easiest to hardest. New stages are appended to the end.
+</p>
+
+<form method="POST">
+    <label for="stage_name">Stage Name</label>
+    <input type="text" id="stage_name" name="stage_name"
+           placeholder="e.g. Advanced Tuck, Straddle" required>
+
+    <label for="description">Description (optional)</label>
+    <textarea id="description" name="description" rows="2"
+              placeholder="What does this stage look like?"></textarea>
+
+    <div class="mt">
+        <button type="submit" class="btn btn-primary">Add Stage</button>
+        <a href="/skills/{{ skill.id }}" class="btn btn-neutral">Cancel</a>
+    </div>
+</form>
+
+{% endblock %}

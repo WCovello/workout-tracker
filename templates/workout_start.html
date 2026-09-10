@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Start Workout — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Start Workout</h1>
+
+{% if templates %}
+<h2>From a Template</h2>
+<form method="POST">
+    {% for t in templates %}
+    <button type="submit" name="template_id" value="{{ t.id }}"
+            class="btn btn-primary"
+            style="display:block; width:100%; margin-bottom:8px; text-align:left; font-size:16px;">
+        {{ t.name }}
+    </button>
+    {% endfor %}
+</form>
+
+<hr>
+{% endif %}
+
+<h2>Blank Workout</h2>
+<form method="POST">
+    <label for="name">Session Name (optional)</label>
+    <input type="text" id="name" name="name"
+           placeholder="Leave blank for today's date">
+    <div class="mt">
+        <button type="submit" class="btn btn-success">Start Blank Workout</button>
+    </div>
+</form>
+
+{% if not templates %}
+<hr>
+<p class="muted">
+    Tip: <a href="/templates/new">create a template</a> to save your exercise list
+    so you don't have to rebuild it each session.
+</p>
+{% endif %}
+
+{% endblock %}

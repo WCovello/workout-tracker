@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Add Exercise — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Add Exercise</h1>
+
+<form method="POST">
+
+    <label for="name">Exercise Name</label>
+    <input type="text" id="name" name="name"
+           placeholder="e.g. Weighted Pull-up, Ring Dip" required>
+
+    <label for="push_pull">Category</label>
+    <select id="push_pull" name="push_pull" required>
+        <option value="">— Select —</option>
+        <option value="push">Push  (chest, shoulders, triceps)</option>
+        <option value="pull">Pull  (back, biceps)</option>
+        <option value="core">Core  (abs, hip flexors)</option>
+        <option value="legs">Legs  (quads, hamstrings, glutes)</option>
+        <option value="other">Other</option>
+    </select>
+    <p class="muted" style="margin-top:4px; font-size:13px;">
+        This is used to calculate your push/pull balance on the dashboard.
+    </p>
+
+    <!-- Muscle groups: two separate checkbox groups -->
+    <label style="margin-top:18px;">Primary Muscles</label>
+    <p class="muted" style="font-size:13px; margin-bottom:8px;">
+        The muscles that do most of the work.
+    </p>
+    <div style="display:flex; flex-wrap:wrap; gap:6px 16px;">
+        {% for mg in muscle_groups %}
+        <label style="font-weight:normal; display:flex; align-items:center; gap:5px;">
+            <input type="checkbox" name="primary_muscles" value="{{ mg.id }}">
+            {{ mg.name }}
+        </label>
+        {% endfor %}
+    </div>
+
+    <label style="margin-top:18px;">Secondary Muscles</label>
+    <p class="muted" style="font-size:13px; margin-bottom:8px;">
+        Muscles that assist but aren't the main target. Leave blank if unsure.
+    </p>
+    <div style="display:flex; flex-wrap:wrap; gap:6px 16px;">
+        {% for mg in muscle_groups %}
+        <label style="font-weight:normal; display:flex; align-items:center; gap:5px;">
+            <input type="checkbox" name="secondary_muscles" value="{{ mg.id }}">
+            {{ mg.name }}
+        </label>
+        {% endfor %}
+    </div>
+
+    <div class="mt" style="margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Add Exercise</button>
+        <a href="/exercises" class="btn btn-neutral">Cancel</a>
+    </div>
+
+</form>
+
+{% endblock %}

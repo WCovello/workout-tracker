@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+workouts.db
+*.db
+cloudflared.exe
+.DS_Store
+Thumbs.db
+.vscode/
