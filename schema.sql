@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     date             DATE NOT NULL DEFAULT CURRENT_DATE,
     duration_minutes INTEGER,
     notes            TEXT,
+    completed_at     DATETIME
     created_at       DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
