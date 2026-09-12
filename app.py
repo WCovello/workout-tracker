@@ -360,7 +360,7 @@ def workout_finish(session_id):
     notes    = request.form.get('notes', '').strip() or None
     conn = get_db()
     conn.execute(
-        'UPDATE sessions SET duration_minutes = ?, notes = ? WHERE id = ?',
+        'UPDATE sessions SET duration_minutes = ?, notes = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?',
         (duration, notes, session_id)
     )
     conn.commit()
