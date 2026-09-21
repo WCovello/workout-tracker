@@ -115,3 +115,52 @@ CREATE TABLE IF NOT EXISTS skill_logs (
     notes          TEXT,
     logged_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ── Nutrition: food database ──────────────────────────────────────────────
+
+-- A single food or branded product. All nutrient values are per 100g,
+-- matching how nutrition labels are standardized — actual intake gets
+-- calculated later by scaling these against the weight actually logged.
+CREATE TABLE IF NOT EXISTS foods (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT    NOT NULL,
+    brand           TEXT,                       -- nullable: generic foods have no brand
+    calories        REAL    NOT NULL,            -- kcal per 100g
+    protein_g       REAL    NOT NULL DEFAULT 0,
+    carbs_g         REAL    NOT NULL DEFAULT 0,
+    fat_g           REAL    NOT NULL DEFAULT 0,
+    saturated_fat_g REAL,
+    trans_fat_g     REAL,
+    fiber_g         REAL,
+    sugar_g         REAL,
+    sodium_mg       REAL,
+    cholesterol_mg  REAL,
+    notes           TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(name, brand)
+);
+
+-- ── Nutrition: calorie goals ──────────────────────────────────────────────
+
+-- Your daily calorie (and optionally macro) target. Goals are logged with
+-- a start date instead of overwritten, so past goals stay visible in
+-- history even after you change them — useful once you're cutting one
+-- month and bulking the next.
+CREATE TABLE IF NOT EXISTS calorie_goals (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    daily_calories       INTEGER NOT NULL,
+    protein_g            INTEGER,
+    carbs_g              INTEGER,
+    fat_g                INTEGER,
+    -- Calculator inputs, nullable — a manually-typed goal won't have these
+    sex                  TEXT    CHECK(sex IN ('male', 'female')),
+    age                  INTEGER,
+    height_cm            REAL,
+    weight_kg            REAL,
+    body_fat_pct         REAL,     -- optional; switches the calc to Katch-McArdle
+    activity_multiplier  REAL,
+    goal                 TEXT    CHECK(goal IN ('lose', 'maintain', 'gain')),
+    weekly_rate_lb       REAL,     -- null when goal = 'maintain'
+    start_date           DATE    NOT NULL DEFAULT CURRENT_DATE,
+    created_at           DATETIME DEFAULT CURRENT_TIMESTAMP
+);

@@ -936,3 +936,182 @@ def db_check():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# NUTRITION
+# ═══════════════════════════════════════════════════════════════════════════
+
+ACTIVITY_MULTIPLIERS = {
+    'sedentary':          1.2,
+    'lightly_active':     1.375,
+    'moderately_active':  1.55,
+    'very_active':        1.725,
+    'extra_active':       1.9,
+}
+
+
+def calculate_calorie_target(weight_kg, activity_multiplier, goal, weekly_rate_lb=None,
+                              sex=None, age=None, height_cm=None, body_fat_pct=None):
+    """
+    Returns (bmr, tdee, target_calories), all rounded to the nearest kcal.
+    Uses Katch-McArdle if body_fat_pct is given — which needs neither sex
+    nor age — otherwise falls back to Mifflin-St Jeor.
+    """
+    if body_fat_pct is not None:
+        lean_mass_kg = weight_kg * (1 - body_fat_pct / 100)
+        bmr = 370 + (21.6 * lean_mass_kg)
+    elif sex == 'male':
+        bmr = (10 * weight_kg) + (6.25 * height_cm) - (5 * age) + 5
+    else:
+        bmr = (10 * weight_kg) + (6.25 * height_cm) - (5 * age) - 161
+
+    tdee = bmr * activity_multiplier
+
+    if goal == 'maintain' or not weekly_rate_lb:
+        target_calories = tdee
+    else:
+        daily_adjustment = (weekly_rate_lb * 3500) / 7
+        target_calories = tdee - daily_adjustment if goal == 'lose' else tdee + daily_adjustment
+
+    return round(bmr), round(tdee), round(target_calories)
+
+@app.route('/foods')
+def foods_list():
+    conn = get_db()
+    foods = conn.execute(
+        'SELECT id, name, brand, calories, protein_g, carbs_g, fat_g '
+        'FROM foods ORDER BY name'
+    ).fetchall()
+    conn.close()
+    return render_template('foods_list.html', foods=foods)
+
+
+@app.route('/foods/new', methods=['GET', 'POST'])
+def food_new():
+    if request.method == 'POST':
+        name  = request.form['name'].strip()
+        brand = request.form.get('brand', '').strip() or None
+
+        if not name:
+            flash('Food name is required.')
+            return redirect(url_for('food_new'))
+
+        conn = get_db()
+
+        existing = conn.execute(
+            'SELECT id FROM foods WHERE LOWER(name) = LOWER(?) '
+            'AND LOWER(COALESCE(brand, "")) = LOWER(COALESCE(?, ""))',
+            (name, brand)
+        ).fetchone()
+        if existing:
+            flash(f'"{name}"' + (f' ({brand})' if brand else '') + ' is already in the database.')
+            conn.close()
+            return redirect(url_for('food_new'))
+
+        conn.execute('''
+            INSERT INTO foods (name, brand, calories, protein_g, carbs_g, fat_g,
+                                saturated_fat_g, trans_fat_g, fiber_g, sugar_g,
+                                sodium_mg, cholesterol_mg)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            name, brand,
+            request.form.get('calories', type=float) or 0,
+            request.form.get('protein_g', type=float) or 0,
+            request.form.get('carbs_g', type=float) or 0,
+            request.form.get('fat_g', type=float) or 0,
+            request.form.get('saturated_fat_g', type=float),
+            request.form.get('trans_fat_g', type=float),
+            request.form.get('fiber_g', type=float),
+            request.form.get('sugar_g', type=float),
+            request.form.get('sodium_mg', type=float),
+            request.form.get('cholesterol_mg', type=float),
+        ))
+        conn.commit()
+        conn.close()
+        flash(f'"{name}" added to your food database.')
+        return redirect(url_for('foods_list'))
+
+    return render_template('food_new.html')
+
+@app.route('/nutrition/goal/calculate', methods=['POST'])
+def calorie_goal_calculate():
+    sex          = request.form.get('sex')
+    age          = request.form.get('age', type=int)
+    height_cm    = request.form.get('height_cm', type=float)
+    weight_kg    = request.form.get('weight_kg', type=float)
+    body_fat_pct = request.form.get('body_fat_pct', type=float)
+    activity_key = request.form.get('activity_level')
+    goal         = request.form.get('goal')
+    weekly_rate  = request.form.get('weekly_rate_lb', type=float)
+
+    activity_multiplier = ACTIVITY_MULTIPLIERS.get(activity_key, 1.2)
+
+    bmr, tdee, target = calculate_calorie_target(
+        weight_kg=weight_kg, activity_multiplier=activity_multiplier,
+        goal=goal, weekly_rate_lb=weekly_rate,
+        sex=sex, age=age, height_cm=height_cm, body_fat_pct=body_fat_pct
+    )
+
+    conn = get_db()
+    current = conn.execute(
+        'SELECT * FROM calorie_goals ORDER BY start_date DESC, created_at DESC LIMIT 1'
+    ).fetchone()
+    history = conn.execute(
+        'SELECT * FROM calorie_goals ORDER BY start_date DESC, created_at DESC'
+    ).fetchall()
+    conn.close()
+
+    calculated = {
+        'bmr': bmr, 'tdee': tdee, 'target_calories': target,
+        'sex': sex, 'age': age, 'height_cm': height_cm, 'weight_kg': weight_kg,
+        'body_fat_pct': body_fat_pct, 'activity_multiplier': activity_multiplier,
+        'goal': goal, 'weekly_rate_lb': weekly_rate,
+    }
+    return render_template('calorie_goal.html', current=current, history=history, calculated=calculated)
+
+@app.route('/nutrition/goal', methods=['GET', 'POST'])
+def calorie_goal():
+    conn = get_db()
+
+    if request.method == 'POST':
+        daily_calories = request.form.get('daily_calories', type=int)
+        if not daily_calories:
+            flash('Daily calorie target is required.')
+            conn.close()
+            return redirect(url_for('calorie_goal'))
+
+        conn.execute('''
+            INSERT INTO calorie_goals (
+                daily_calories, protein_g, carbs_g, fat_g,
+                sex, age, height_cm, weight_kg, body_fat_pct,
+                activity_multiplier, goal, weekly_rate_lb
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            daily_calories,
+            request.form.get('protein_g', type=int),
+            request.form.get('carbs_g', type=int),
+            request.form.get('fat_g', type=int),
+            request.form.get('sex') or None,
+            request.form.get('age', type=int),
+            request.form.get('height_cm', type=float),
+            request.form.get('weight_kg', type=float),
+            request.form.get('body_fat_pct', type=float),
+            request.form.get('activity_multiplier', type=float),
+            request.form.get('goal') or None,
+            request.form.get('weekly_rate_lb', type=float),
+        ))
+        conn.commit()
+        conn.close()
+        flash('Calorie goal updated.')
+        return redirect(url_for('calorie_goal'))
+
+    current = conn.execute(
+        'SELECT * FROM calorie_goals ORDER BY start_date DESC, created_at DESC LIMIT 1'
+    ).fetchone()
+    history = conn.execute(
+        'SELECT * FROM calorie_goals ORDER BY start_date DESC, created_at DESC'
+    ).fetchall()
+    conn.close()
+    return render_template('calorie_goal.html', current=current, history=history)

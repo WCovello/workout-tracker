@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Food Database — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Food Database</h1>
+<p><a href="/foods/new" class="btn btn-primary">+ Add Food</a></p>
+
+<table>
+    <tr><th>Name</th><th>Brand</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th></tr>
+    {% for f in foods %}
+    <tr>
+        <td>{{ f.name }}</td>
+        <td>{{ f.brand or '—' }}</td>
+        <td>{{ f.calories }} kcal</td>
+        <td>{{ f.protein_g }}g</td>
+        <td>{{ f.carbs_g }}g</td>
+        <td>{{ f.fat_g }}g</td>
+    </tr>
+    {% endfor %}
+</table>
+<p class="muted" style="font-size:13px;">All values per 100g.</p>
+
+{% endblock %}

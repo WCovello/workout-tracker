@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Calorie Goal — Workout Tracker{% endblock %}
+{% block content %}
+
+<h1>Calorie Goal</h1>
+
+<h2>Calculate a Target</h2>
+<form method="POST" action="/nutrition/goal/calculate">
+
+    <label for="sex">Sex</label>
+    <select id="sex" name="sex">
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+    </select>
+
+    <label for="age">Age</label>
+    <input type="number" id="age" name="age" required>
+
+    <label for="height_cm">Height (cm)</label>
+    <input type="number" step="0.1" id="height_cm" name="height_cm" required>
+
+    <label for="weight_kg">Weight (kg)</label>
+    <input type="number" step="0.1" id="weight_kg" name="weight_kg" required>
+
+    <label for="body_fat_pct">Body Fat % (optional — more accurate if known)</label>
+    <input type="number" step="0.1" id="body_fat_pct" name="body_fat_pct"
+           placeholder="Leave blank to estimate from height/age instead">
+
+    <label for="activity_level">Activity Level</label>
+    <select id="activity_level" name="activity_level">
+        <option value="sedentary">Sedentary — little or no exercise</option>
+        <option value="lightly_active">Lightly Active — 1-3 days/week</option>
+        <option value="moderately_active">Moderately Active — 3-5 days/week</option>
+        <option value="very_active">Very Active — 6-7 days/week</option>
+        <option value="extra_active">Extra Active — hard daily training or physical job</option>
+    </select>
+
+    <label for="goal">Goal</label>
+    <select id="goal" name="goal">
+        <option value="lose">Lose Weight</option>
+        <option value="maintain">Maintain Weight</option>
+        <option value="gain">Gain Weight</option>
+    </select>
+
+    <label for="weekly_rate_lb">Target Rate (ignored if maintaining)</label>
+    <select id="weekly_rate_lb" name="weekly_rate_lb">
+        <option value="0.5">0.5 lb/week</option>
+        <option value="1" selected>1 lb/week</option>
+        <option value="1.5">1.5 lb/week</option>
+        <option value="2">2 lb/week</option>
+    </select>
+
+    <div class="mt" style="margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Calculate</button>
+    </div>
+
+</form>
+
+{% if calculated %}
+<div style="margin-top:24px; padding:16px; border:1px solid #ddd; border-radius:8px;">
+    <h2>Result</h2>
+    <p>BMR: <strong>{{ calculated.bmr }} kcal</strong></p>
+    <p>Maintenance (TDEE): <strong>{{ calculated.tdee }} kcal</strong></p>
+    <p>Target Calories: <strong>{{ calculated.target_calories }} kcal</strong></p>
+
+    <form method="POST" action="/nutrition/goal">
+        <input type="hidden" name="daily_calories" value="{{ calculated.target_calories }}">
+        <input type="hidden" name="sex" value="{{ calculated.sex }}">
+        <input type="hidden" name="age" value="{{ calculated.age }}">
+        <input type="hidden" name="height_cm" value="{{ calculated.height_cm }}">
+        <input type="hidden" name="weight_kg" value="{{ calculated.weight_kg }}">
+        <input type="hidden" name="body_fat_pct" value="{{ calculated.body_fat_pct or '' }}">
+        <input type="hidden" name="activity_multiplier" value="{{ calculated.activity_multiplier }}">
+        <input type="hidden" name="goal" value="{{ calculated.goal }}">
+        <input type="hidden" name="weekly_rate_lb" value="{{ calculated.weekly_rate_lb or '' }}">
+        <button type="submit" class="btn btn-success">Save This Goal</button>
+    </form>
+</div>
+{% endif %}
+
+<h2 style="margin-top:32px;">Or Set Manually</h2>
+<form method="POST" action="/nutrition/goal">
+    <label for="daily_calories">Daily Calories</label>
+    <input type="number" id="daily_calories" name="daily_calories"
+           value="{{ current.daily_calories if current else '' }}" required>
+
+    <label for="protein_g">Protein Target (g)</label>
+    <input type="number" id="protein_g" name="protein_g"
+           value="{{ current.protein_g if current else '' }}" placeholder="Optional">
+
+    <label for="carbs_g">Carb Target (g)</label>
+    <input type="number" id="carbs_g" name="carbs_g"
+           value="{{ current.carbs_g if current else '' }}" placeholder="Optional">
+
+    <label for="fat_g">Fat Target (g)</label>
+    <input type="number" id="fat_g" name="fat_g"
+           value="{{ current.fat_g if current else '' }}" placeholder="Optional">
+
+    <div class="mt" style="margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Save Goal</button>
+    </div>
+</form>
+
+{% if history|length > 1 %}
+<h2 style="margin-top:24px;">History</h2>
+<table>
+    <tr><th>Since</th><th>Calories</th></tr>
+    {% for g in history %}
+    <tr><td>{{ g.start_date }}</td><td>{{ g.daily_calories }} kcal</td></tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+{% endblock %}
