@@ -9,6 +9,31 @@
     <a href="/templates/new" class="btn btn-primary">+ New Template</a>
 </p>
 
+<h2>{{ month_name }}</h2>
+<table class="calendar">
+    <tr>
+        <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
+    </tr>
+    {% for week in month_weeks %}
+    <tr>
+        {% for day in week %}
+            {% if day == 0 %}
+                <td></td>
+            {% else %}
+                {% set day_info = calendar_days.get(day, {}) %}
+                <td class="{% if day == today_day %}calendar-today{% endif %}">
+                    <div class="calendar-day-num">{{ day }}</div>
+                    {% for session in day_info.get('sessions', []) %}
+                        <a href="/history/{{ session.id }}" class="calendar-session-link"
+                           title="{{ session.name }}" aria-label="{{ session.name }}">🏋️</a>
+                    {% endfor %}
+                </td>
+            {% endif %}
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+
 <h2>Recent Sessions</h2>
 {% if recent %}
 <table>

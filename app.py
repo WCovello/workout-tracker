@@ -1,3 +1,7 @@
+from collections import defaultdict
+import datetime
+import calendar
+
 """
 app.py — Main Flask application
 All web routes live here. Database logic lives in database.py.
@@ -32,8 +36,34 @@ def index():
         ORDER BY s.date DESC, s.created_at DESC
         LIMIT 5
     ''').fetchall()
+
+    today = datetime.date.today()
+    cal = calendar.Calendar(firstweekday=6)  # Sunday-first
+    month_weeks = cal.monthdayscalendar(today.year, today.month)
+
+    month_sessions = conn.execute('''
+        SELECT id, name, date FROM sessions
+        WHERE strftime('%Y-%m', date) = ?
+        ORDER BY date, created_at, id
+    ''', (today.strftime('%Y-%m'),)).fetchall()
     conn.close()
-    return render_template('index.html', recent=recent)
+
+    # Keyed by day-of-month; each value is a dict of categories.
+    # 'sessions' today — 'meals' or anything else slots in the same way
+    # once those features exist, with no change to this structure.
+    calendar_days = defaultdict(dict)
+    for s in month_sessions:
+        day_num = int(s['date'][8:10])
+        calendar_days[day_num].setdefault('sessions', []).append(
+            {'id': s['id'], 'name': s['name']}
+        )
+    calendar_days = dict(calendar_days)  # plain dict — avoids defaultdict surprises in the template
+
+    return render_template(
+        'index.html', recent=recent,
+        month_weeks=month_weeks, calendar_days=calendar_days,
+        today_day=today.day, month_name=today.strftime('%B %Y')
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -934,10 +964,6 @@ def db_check():
     <a href="/">Back</a>'''
 
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # NUTRITION
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1115,3 +1141,7 @@ def calorie_goal():
     ).fetchall()
     conn.close()
     return render_template('calorie_goal.html', current=current, history=history)
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
