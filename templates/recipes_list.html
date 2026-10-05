@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Recipes — Workout Tracker{% endblock %}
+{% block content %}
+<h1>Recipes</h1>
+<p class="muted mb">Save a meal once, then log a serving whenever you make it again.</p>
+<a class="btn btn-primary" href="{{ url_for('recipe_edit') }}">+ New Recipe</a>
+<a class="btn btn-neutral" href="{{ url_for('meal_ideas') }}">Meal Ideas</a>
+<a class="btn btn-neutral" href="{{ url_for('nutrition_log') }}">Food Log</a>
+<form method="get" class="mb">
+    <label for="q">Find a recipe</label>
+    <div class="row">
+        <input id="q" name="q" type="text" value="{{ query }}" placeholder="Search by name">
+        <button class="btn btn-neutral btn-col">Search</button>
+    </div>
+</form>
+{% for recipe in recipes %}
+<div class="card">
+    <a class="card-title" href="{{ url_for('recipe_view', recipe_id=recipe.id) }}">{{ recipe.name }}</a>
+    <p class="muted mt">{{ recipe.ingredient_count }} ingredients · Makes {{ '%g'|format(recipe.servings) }} servings · {{ recipe.calories|round(1) }} kcal per serving</p>
+    <a class="btn btn-primary mt" href="{{ url_for('recipe_view', recipe_id=recipe.id) }}#log">Log Recipe</a>
+    <a class="btn btn-neutral" href="{{ url_for('recipe_edit', recipe_id=recipe.id) }}">Edit</a>
+</div>
+{% else %}
+<p class="card">{{ 'No recipes match your search.' if query else 'No recipes yet. Create your first recipe using foods from your food library.' }}</p>
+{% endfor %}
+{% endblock %}

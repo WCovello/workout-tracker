@@ -45,7 +45,45 @@ ipconfig
 Look for "IPv4 Address" under your WiFi adapter, e.g. 192.168.1.42
 Then on your phone open: http://192.168.1.42:5000
 
-## Project Structure
+## Recipes and repeat meals
+
+1. Add ingredients under **Foods**, with nutrition values per 100g.
+2. Open **Recipes → New Recipe**. Enter a name, the number of servings in the
+   batch, ingredient weights in grams, and optional preparation instructions.
+3. Save the recipe to see nutrition for the whole batch and per serving.
+4. Choose the date and servings eaten, then **Add to Food Log**. Fractional
+   servings are supported. Use recipe search or **Log Again** to repeat a meal.
+
+Recipes can be edited or deleted. Existing food log entries retain the name and
+nutrition saved when they were logged. The food log currently tracks saved
+recipes; it does not yet include individual food entries.
+
+The new tables are created automatically on app startup, including for existing
+databases. No manual migration is required.
+
+Run the recipe integration tests against an isolated temporary database:
+
+```
+python -m unittest discover -s tests -v
+```
+
+## Meal ideas
+
+Open **Recipes → Meal Ideas** for eight breakfast, lunch and dinner ideas using
+everyday ingredients suitable for a Sainsbury's shop. Preview batch quantities
+and preparation, then choose **Save to Recipes** to edit and log servings with
+the existing food log. Repeated saves reopen your saved copy, including after
+you rename it; deleting a saved recipe allows you to import it again.
+
+Nutrition uses clearly labelled generic estimates, not verified retailer product
+labels. For more precise tracking, add foods using your package labels and swap
+them into the saved recipe. Meat weights are raw, grain weights dry, and tinned
+beans and tuna drained. Storage guidance is included. No recipes or foods are
+added to your database until you save an idea.
+
+The catalogue and its estimates are maintained in `meal_ideas.py`.
+
+## Project files
 
 ```
 workout-tracker/

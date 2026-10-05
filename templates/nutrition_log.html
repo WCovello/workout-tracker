@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Food Log — Workout Tracker{% endblock %}
+{% block content %}
+<h1>Food Log</h1>
+<p class="muted mb">Meals logged from your saved recipes.</p>
+<a class="btn btn-primary" href="{{ url_for('recipes_list') }}">+ Log a Recipe</a>
+<form method="get" class="mb">
+    <label for="date">View date</label>
+    <input id="date" name="date" type="date" value="{{ date }}" required>
+    <button class="btn btn-neutral">Show</button>
+</form>
+<div class="card">
+    <p class="card-title">{{ totals.calories|round(1) }} kcal</p>
+    <p class="muted mt">Protein {{ totals.protein_g|round(1) }} g · Carbs {{ totals.carbs_g|round(1) }} g · Fat {{ totals.fat_g|round(1) }} g</p>
+</div>
+{% for entry in entries %}
+<div class="card">
+    <p class="card-title">{{ entry.name }}</p>
+    <p class="mt">{{ '%g'|format(entry.servings) }} servings · {{ entry.calories|round(1) }} kcal</p>
+    <p class="muted mt">Protein {{ entry.protein_g|round(1) }} g · Carbs {{ entry.carbs_g|round(1) }} g · Fat {{ entry.fat_g|round(1) }} g</p>
+    {% if entry.recipe_id %}<a class="btn btn-neutral btn-small mt" href="{{ url_for('recipe_view', recipe_id=entry.recipe_id) }}#log">Log Again</a>{% endif %}
+    <form method="post" action="{{ url_for('nutrition_log_delete', log_id=entry.id) }}" onsubmit="return confirm('Remove this entry from your food log?');">
+        <button class="btn btn-danger btn-small">Remove Entry</button>
+    </form>
+</div>
+{% else %}<p class="card">No recipes logged for this date. Choose a saved recipe to add your first meal.</p>{% endfor %}
+{% endblock %}

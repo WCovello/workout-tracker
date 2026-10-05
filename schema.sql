@@ -146,6 +146,42 @@ CREATE TABLE IF NOT EXISTS foods (
 -- a start date instead of overwritten, so past goals stay visible in
 -- history even after you change them — useful once you're cutting one
 -- month and bulking the next.
+CREATE TABLE IF NOT EXISTS recipes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    servings REAL NOT NULL CHECK(servings > 0),
+    instructions TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS recipe_ingredients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    food_id INTEGER NOT NULL REFERENCES foods(id),
+    grams REAL NOT NULL CHECK(grams > 0)
+);
+
+-- Snapshot nutrition at logging time so later recipe edits cannot alter history.
+CREATE TABLE IF NOT EXISTS recipe_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id INTEGER REFERENCES recipes(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    date DATE NOT NULL,
+    servings REAL NOT NULL CHECK(servings > 0),
+    calories REAL NOT NULL,
+    protein_g REAL NOT NULL,
+    carbs_g REAL NOT NULL,
+    fat_g REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS recipe_logs_date ON recipe_logs(date);
+
+CREATE TABLE IF NOT EXISTS starter_meal_imports (
+    slug TEXT PRIMARY KEY,
+    recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS calorie_goals (
     id                   INTEGER PRIMARY KEY AUTOINCREMENT,
     daily_calories       INTEGER NOT NULL,

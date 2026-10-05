@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Meal Ideas — Workout Tracker{% endblock %}
+{% block content %}
+<a href="{{ url_for('recipes_list') }}">← Recipes</a>
+<h1>Meal ideas for your training</h1>
+<p class="mb">Breakfasts and meal prep using everyday ingredients for your Sainsbury’s shop. Start with two batch meals and two breakfasts, then adjust portions to your own goals.</p>
+<div class="card"><strong>About the nutrition</strong><p class="mt">{{ estimate_note }}</p></div>
+<nav aria-label="Meal categories" class="mb">
+{% for category in ['Breakfast', 'Lunch', 'Dinner'] %}
+<a class="btn btn-neutral" href="#{{ category|lower }}">{{ category }}</a>
+{% endfor %}
+</nav>
+{% for category in ['Breakfast', 'Lunch', 'Dinner'] %}
+<h2 id="{{ category|lower }}">{{ category }}</h2>
+{% for meal in meals if meal.category == category %}
+{% set macros = nutrition(meal) %}
+<article class="card">
+    <h3>{{ meal.name }}</h3>
+    <p class="muted mt">Makes {{ meal.servings }} servings · Estimated {{ macros.calories|round|int }} kcal and {{ macros.protein_g|round(1) }} g protein per serving</p>
+    <p class="mt">{{ meal.tip }}</p>
+    <details class="mt">
+        <summary>Ingredients and preparation</summary>
+        <p class="mt">For the whole batch:</p>
+        <ul style="padding-left:24px">{% for name, grams in meal.ingredients %}<li>{{ grams }} g {{ name }}</li>{% endfor %}</ul>
+        <p class="mt">{{ meal.method }}</p>
+    </details>
+    {% if meal.slug in saved %}
+    <a class="btn btn-primary mt" href="{{ url_for('recipe_view', recipe_id=saved[meal.slug]) }}">Open saved recipe</a>
+    {% else %}
+    <form method="post" action="{{ url_for('meal_idea_save', slug=meal.slug) }}" class="mt">
+        <button class="btn btn-primary">Save to Recipes</button>
+    </form>
+    {% endif %}
+</article>
+{% endfor %}
+{% endfor %}
+<section class="card"><h2>Storing your meal prep</h2><p>{{ storage }}</p>
+<a href="https://www.food.gov.uk/print/pdf/node/7611">Food Standards Agency storage guidance</a></section>
+{% endblock %}

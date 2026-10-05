@@ -7,8 +7,11 @@ app.py — Main Flask application
 All web routes live here. Database logic lives in database.py.
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, abort
+from contextlib import closing
+import math
 from database import init_db, seed_db, get_db
+from meal_ideas import MEALS, ESTIMATE_NOTE, STORAGE, nutrition, save_meal
 from collections import defaultdict
 import datetime
 
@@ -1141,6 +1144,184 @@ def calorie_goal():
     ).fetchall()
     conn.close()
     return render_template('calorie_goal.html', current=current, history=history)
+
+
+NUTRIENTS = ('calories', 'protein_g', 'carbs_g', 'fat_g')
+
+
+def positive_number(value, label):
+    try:
+        number = float(value)
+    except (ValueError, TypeError):
+        raise ValueError(f'{label} must be a positive number.')
+    if not math.isfinite(number) or not 0 < number <= 1000000:
+        raise ValueError(f'{label} must be greater than zero and at most 1,000,000.')
+    return number
+
+
+def recipe_details(conn, recipe_id):
+    recipe = conn.execute('SELECT * FROM recipes WHERE id = ?', (recipe_id,)).fetchone()
+    if recipe is None:
+        abort(404)
+    ingredients = conn.execute('''
+        SELECT ri.*, f.name, f.brand, f.calories, f.protein_g, f.carbs_g, f.fat_g
+        FROM recipe_ingredients ri JOIN foods f ON f.id = ri.food_id
+        WHERE ri.recipe_id = ? ORDER BY ri.id
+    ''', (recipe_id,)).fetchall()
+    totals = {key: sum(row[key] * row['grams'] / 100 for row in ingredients)
+              for key in NUTRIENTS}
+    return recipe, ingredients, totals
+
+
+@app.route('/recipes')
+def recipes_list():
+    query = request.args.get('q', '').strip()
+    with closing(get_db()) as conn:
+        recipes = conn.execute('''
+            SELECT r.*, COUNT(ri.id) AS ingredient_count,
+                   COALESCE(SUM(f.calories * ri.grams / 100), 0) / r.servings AS calories
+            FROM recipes r
+            LEFT JOIN recipe_ingredients ri ON ri.recipe_id = r.id
+            LEFT JOIN foods f ON f.id = ri.food_id
+            WHERE instr(lower(r.name), lower(?)) > 0
+            GROUP BY r.id ORDER BY r.name COLLATE NOCASE
+        ''', (query,)).fetchall()
+    return render_template('recipes_list.html', recipes=recipes, query=query)
+
+
+@app.route('/recipes/ideas')
+def meal_ideas():
+    with closing(get_db()) as conn:
+        saved = {row['slug']: row['recipe_id'] for row in
+                 conn.execute('SELECT slug, recipe_id FROM starter_meal_imports')}
+    return render_template('meal_ideas.html', meals=MEALS, saved=saved,
+                           nutrition=nutrition, estimate_note=ESTIMATE_NOTE, storage=STORAGE)
+
+
+@app.route('/recipes/ideas/<slug>/save', methods=['POST'])
+def meal_idea_save(slug):
+    meal = next((item for item in MEALS if item['slug'] == slug), None)
+    if meal is None:
+        abort(404)
+    with closing(get_db()) as conn:
+        recipe_id = save_meal(conn, meal)
+    flash('Meal saved to Recipes. You can edit the ingredients and log a serving.')
+    return redirect(url_for('recipe_view', recipe_id=recipe_id))
+
+
+@app.route('/recipes/new', methods=['GET', 'POST'])
+@app.route('/recipes/<int:recipe_id>/edit', methods=['GET', 'POST'])
+def recipe_edit(recipe_id=None):
+    with closing(get_db()) as conn:
+        foods = conn.execute('SELECT * FROM foods ORDER BY name COLLATE NOCASE, brand').fetchall()
+        recipe = {'name': '', 'servings': 1, 'instructions': ''}
+        ingredients = [{'food_id': '', 'grams': ''}]
+        if recipe_id is not None:
+            recipe, ingredients, _ = recipe_details(conn, recipe_id)
+        error = None
+        if request.method == 'POST':
+            recipe = {key: request.form.get(key, '').strip()
+                      for key in ('name', 'servings', 'instructions')}
+            food_ids = request.form.getlist('food_id')
+            weights = request.form.getlist('grams')
+            ingredients = [{'food_id': fid, 'grams': weight}
+                           for fid, weight in zip(food_ids, weights)]
+            try:
+                if not recipe['name']:
+                    raise ValueError('Recipe name is required.')
+                servings = positive_number(recipe['servings'], 'Batch servings')
+                if not food_ids or len(food_ids) != len(weights):
+                    raise ValueError('Add at least one ingredient with its weight.')
+                available = {str(food['id']) for food in foods}
+                values = []
+                for ingredient in ingredients:
+                    if ingredient['food_id'] not in available:
+                        raise ValueError('Choose a saved food for every ingredient.')
+                    grams = positive_number(ingredient['grams'], 'Ingredient weight')
+                    values.append((int(ingredient['food_id']), grams))
+                with conn:
+                    if recipe_id is None:
+                        recipe_id = conn.execute(
+                            'INSERT INTO recipes (name, servings, instructions) VALUES (?, ?, ?)',
+                            (recipe['name'], servings, recipe['instructions'])).lastrowid
+                    else:
+                        conn.execute('UPDATE recipes SET name = ?, servings = ?, instructions = ? WHERE id = ?',
+                                     (recipe['name'], servings, recipe['instructions'], recipe_id))
+                        conn.execute('DELETE FROM recipe_ingredients WHERE recipe_id = ?', (recipe_id,))
+                    conn.executemany('INSERT INTO recipe_ingredients (recipe_id, food_id, grams) VALUES (?, ?, ?)',
+                                     [(recipe_id, fid, grams) for fid, grams in values])
+                flash('Recipe saved. It is ready to log again whenever you make it.')
+                return redirect(url_for('recipe_view', recipe_id=recipe_id))
+            except ValueError as exc:
+                error = str(exc)
+    return render_template('recipe_edit.html', recipe=recipe, ingredients=ingredients,
+                           foods=foods, recipe_id=recipe_id, error=error), 400 if error else 200
+
+
+@app.route('/recipes/<int:recipe_id>', methods=['GET', 'POST'])
+def recipe_view(recipe_id):
+    date = request.form.get('date', datetime.date.today().isoformat())
+    portions = request.form.get('servings', '1')
+    error = None
+    with closing(get_db()) as conn:
+        recipe, ingredients, totals = recipe_details(conn, recipe_id)
+        per_serving = {key: value / recipe['servings'] for key, value in totals.items()}
+        if request.method == 'POST':
+            try:
+                servings = positive_number(portions, 'Servings eaten')
+                try:
+                    date = datetime.date.fromisoformat(date).isoformat()
+                except ValueError:
+                    raise ValueError('Choose a valid log date.')
+                nutrition = [per_serving[key] * servings for key in NUTRIENTS]
+                if not ingredients or any(not math.isfinite(n) or n < 0 for n in nutrition):
+                    raise ValueError('Check the ingredient nutrition before logging this recipe.')
+                with conn:
+                    conn.execute('''INSERT INTO recipe_logs
+                        (recipe_id, name, date, servings, calories, protein_g, carbs_g, fat_g)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                        (recipe_id, recipe['name'], date, servings, *nutrition))
+                flash('Recipe added to your food log.')
+                return redirect(url_for('nutrition_log', date=date))
+            except ValueError as exc:
+                error = str(exc)
+    return render_template('recipe_view.html', recipe=recipe, ingredients=ingredients,
+                           totals=totals, per_serving=per_serving, date=date,
+                           portions=portions, error=error), 400 if error else 200
+
+
+@app.route('/recipes/<int:recipe_id>/delete', methods=['POST'])
+def recipe_delete(recipe_id):
+    with closing(get_db()) as conn:
+        recipe_details(conn, recipe_id)
+        with conn:
+            conn.execute('DELETE FROM recipes WHERE id = ?', (recipe_id,))
+    flash('Recipe deleted. Previously logged meals are kept.')
+    return redirect(url_for('recipes_list'))
+
+
+@app.route('/nutrition/log')
+def nutrition_log():
+    try:
+        date = datetime.date.fromisoformat(request.args.get('date', datetime.date.today().isoformat())).isoformat()
+    except ValueError:
+        abort(400, 'Invalid log date')
+    with closing(get_db()) as conn:
+        entries = conn.execute('SELECT * FROM recipe_logs WHERE date = ? ORDER BY id DESC', (date,)).fetchall()
+    totals = {key: sum(row[key] for row in entries) for key in NUTRIENTS}
+    return render_template('nutrition_log.html', entries=entries, totals=totals, date=date)
+
+
+@app.route('/nutrition/log/<int:log_id>/delete', methods=['POST'])
+def nutrition_log_delete(log_id):
+    with closing(get_db()) as conn:
+        entry = conn.execute('SELECT date FROM recipe_logs WHERE id = ?', (log_id,)).fetchone()
+        if entry is None:
+            abort(404)
+        with conn:
+            conn.execute('DELETE FROM recipe_logs WHERE id = ?', (log_id,))
+    flash('Entry removed from your food log.')
+    return redirect(url_for('nutrition_log', date=entry['date']))
 
 
 if __name__ == '__main__':

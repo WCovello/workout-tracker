@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if recipe_id else 'New' }} Recipe — Workout Tracker{% endblock %}
+{% block content %}
+<h1>{{ 'Edit' if recipe_id else 'New' }} Recipe</h1>
+{% if error %}<p class="card" role="alert">{{ error }}</p>{% endif %}
+{% if not foods %}
+<p class="card">Add foods to your library first, including their nutrition per 100g.</p>
+<a class="btn btn-primary" href="{{ url_for('food_new') }}">+ Add Food</a>
+{% else %}
+<form method="post">
+    <label for="name">Recipe name</label>
+    <input id="name" name="name" type="text" value="{{ recipe.name }}" placeholder="e.g. Chicken and rice" required>
+    <label for="servings">Servings in the whole batch</label>
+    <input id="servings" name="servings" type="number" min="0.001" max="1000000" step="any" value="{{ recipe.servings }}" required>
+    <h2>Ingredients</h2>
+    <p class="muted mb">Enter the weight used for the entire batch. Use weights that match each food's nutrition (for example, raw or cooked).</p>
+    <p class="mb"><a href="{{ url_for('food_new') }}" target="_blank" rel="noopener">Add a missing food in a new tab</a>, then reload this page before entering your recipe.</p>
+    {% macro ingredient_row(ingredient) %}
+    <div class="card ingredient-row">
+        <label>Food
+            <select name="food_id" required>
+                <option value="">Choose a food</option>
+                {% for food in foods %}
+                <option value="{{ food.id }}" {% if ingredient.food_id|string == food.id|string %}selected{% endif %}>{{ food.name }}{% if food.brand %} ({{ food.brand }}){% endif %}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Weight in batch (g)
+            <input name="grams" type="number" min="0.001" max="1000000" step="any" value="{{ ingredient.grams }}" required>
+        </label>
+        <button type="button" class="btn btn-neutral btn-small remove-ingredient">Remove ingredient</button>
+    </div>
+    {% endmacro %}
+    <div id="ingredients">{% for ingredient in ingredients %}{{ ingredient_row(ingredient) }}{% endfor %}</div>
+    <button id="add-ingredient" type="button" class="btn btn-neutral">+ Add Ingredient</button>
+    <label for="instructions">Instructions / notes (optional)</label>
+    <textarea id="instructions" name="instructions" rows="5" placeholder="How you prepare this recipe">{{ recipe.instructions or '' }}</textarea>
+    <div class="mt">
+        <button class="btn btn-primary">Save Recipe</button>
+        <a class="btn btn-neutral" href="{{ url_for('recipes_list') }}">Cancel</a>
+    </div>
+    <template id="ingredient-template">{{ ingredient_row({'food_id': '', 'grams': ''}) }}</template>
+</form>
+<script>
+const ingredients = document.getElementById('ingredients');
+document.getElementById('add-ingredient').addEventListener('click', () => {
+    ingredients.append(document.getElementById('ingredient-template').content.cloneNode(true));
+    ingredients.lastElementChild.querySelector('select').focus();
+});
+ingredients.addEventListener('click', event => {
+    if (event.target.closest('.remove-ingredient')) {
+        const row = event.target.closest('.ingredient-row');
+        if (ingredients.children.length > 1) row.remove();
+        else {
+            row.querySelector('select').value = '';
+            row.querySelector('input').value = '';
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

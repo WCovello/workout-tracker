@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}{{ recipe.name }} — Workout Tracker{% endblock %}
+{% block content %}
+<a href="{{ url_for('recipes_list') }}">← Recipes</a>
+<h1>{{ recipe.name }}</h1>
+<p class="muted">Makes {{ '%g'|format(recipe.servings) }} servings</p>
+<h2>Nutrition</h2>
+<table>
+    <tr><th scope="col">Nutrient</th><th scope="col">Per serving</th><th scope="col">Whole batch</th></tr>
+    {% for key, label, unit in [('calories', 'Calories', 'kcal'), ('protein_g', 'Protein', 'g'), ('carbs_g', 'Carbs', 'g'), ('fat_g', 'Fat', 'g')] %}
+    <tr><th scope="row">{{ label }}</th><td>{{ per_serving[key]|round(1) }} {{ unit }}</td><td>{{ totals[key]|round(1) }} {{ unit }}</td></tr>
+    {% endfor %}
+</table>
+<section class="card" id="log">
+    <h2>Log this recipe</h2>
+    {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+    <form method="post">
+        <label for="date">Date</label>
+        <input id="date" name="date" type="date" value="{{ date }}" required>
+        <label for="portions">Servings eaten</label>
+        <input id="portions" name="servings" type="number" min="0.001" max="1000000" step="any" value="{{ portions }}" required>
+        <p class="muted mt">Use 0.5 for half a serving or 2 for two servings.</p>
+        <button class="btn btn-primary mt">Add to Food Log</button>
+    </form>
+</section>
+<h2>Ingredients for the whole batch</h2>
+<ul style="padding-left:24px">{% for ingredient in ingredients %}
+    <li>{{ '%g'|format(ingredient.grams) }} g {{ ingredient.name }}{% if ingredient.brand %} ({{ ingredient.brand }}){% endif %}</li>
+{% endfor %}</ul>
+{% if recipe.instructions %}<h2>Instructions / notes</h2><p style="white-space:pre-wrap;overflow-wrap:anywhere">{{ recipe.instructions }}</p>{% endif %}
+<a class="btn btn-neutral mt" href="{{ url_for('recipe_edit', recipe_id=recipe.id) }}">Edit Recipe</a>
+<form method="post" action="{{ url_for('recipe_delete', recipe_id=recipe.id) }}" class="mt" onsubmit="return confirm('Delete this saved recipe? Previously logged meals will be kept.');">
+    <button class="btn btn-danger btn-small">Delete Recipe</button>
+</form>
+{% endblock %}
